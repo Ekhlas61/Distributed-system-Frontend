@@ -1,0 +1,5 @@
+
+{
+  "name": "EventTick - Distributed Reservation System",
+  "description": "A demo frontend for a distributed event ticketing and reservation system, showcasing microservices interaction, Pub/Sub workflow visualization, and real-time status updates."
+}
