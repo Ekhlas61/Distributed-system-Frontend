@@ -6,6 +6,7 @@ import { authService } from './api/authService';
 
 import Layout from './components/Layout';
 import LoginPage from './pages/LoginPage';
+import SignUpPage from './pages/SignUpPage';
 import EventListPage from './pages/EventListPage';
 import EventDetailPage from './pages/EventDetailPage';
 import MyReservationsPage from './pages/MyReservationsPage';
@@ -45,6 +46,7 @@ const App: React.FC = () => {
     <Router>
       <Routes>
         <Route path="/login" element={user ? <Navigate to="/" /> : <LoginPage onLogin={setUser} />} />
+        <Route path="/signup" element={user ? <Navigate to="/" /> : <SignUpPage onSignUp={setUser} />} />
         
         <Route path="/" element={<Layout user={user} onLogout={() => setUser(null)} />}>
           <Route index element={<EventListPage />} />
