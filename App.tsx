@@ -5,6 +5,7 @@ import { User, UserRole } from './types';
 import { authService } from './api/authService';
 
 import Layout from './components/Layout';
+import ErrorBoundary from './components/ErrorBoundary';
 import LoginPage from './pages/LoginPage';
 import SignUpPage from './pages/SignUpPage';
 import EventListPage from './pages/EventListPage';
@@ -43,29 +44,31 @@ const App: React.FC = () => {
   };
 
   return (
-    <Router>
-      <Routes>
-        <Route path="/login" element={user ? <Navigate to="/" /> : <LoginPage onLogin={setUser} />} />
-        <Route path="/signup" element={user ? <Navigate to="/" /> : <SignUpPage onSignUp={setUser} />} />
-        
-        <Route path="/" element={<Layout user={user} onLogout={() => setUser(null)} />}>
-          <Route index element={<EventListPage />} />
-          <Route path="events/:id" element={<EventDetailPage user={user} />} />
+    <ErrorBoundary>
+      <Router>
+        <Routes>
+          <Route path="/login" element={user ? <Navigate to="/" /> : <LoginPage onLogin={setUser} />} />
+          <Route path="/signup" element={user ? <Navigate to="/" /> : <SignUpPage onSignUp={setUser} />} />
           
-          <Route path="my-reservations" element={
-            <ProtectedRoute>
-              <MyReservationsPage user={user} />
-            </ProtectedRoute>
-          } />
-          
-          <Route path="admin" element={
-            <ProtectedRoute allowedRole={UserRole.ADMIN}>
-              <AdminDashboard />
-            </ProtectedRoute>
-          } />
-        </Route>
-      </Routes>
-    </Router>
+          <Route path="/" element={<Layout user={user} onLogout={() => setUser(null)} />}>
+            <Route index element={<EventListPage />} />
+            <Route path="events/:id" element={<EventDetailPage user={user} />} />
+            
+            <Route path="my-reservations" element={
+              <ProtectedRoute>
+                <MyReservationsPage user={user} />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="admin" element={
+              <ProtectedRoute allowedRole={UserRole.ADMIN}>
+                <AdminDashboard />
+              </ProtectedRoute>
+            } />
+          </Route>
+        </Routes>
+      </Router>
+    </ErrorBoundary>
   );
 };
 
