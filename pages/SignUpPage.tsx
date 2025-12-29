@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authService } from '../api/authService';
-import { User } from '../types';
+import { User, RegisterRequest, UserRole } from '../types';
 
 interface SignUpPageProps {
   onSignUp: (user: User) => void;
@@ -9,7 +9,8 @@ interface SignUpPageProps {
 
 const SignUpPage: React.FC<SignUpPageProps> = ({ onSignUp }) => {
   const [username, setUsername] = useState('');
-  const [email, setEmail] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
@@ -34,19 +35,32 @@ const SignUpPage: React.FC<SignUpPageProps> = ({ onSignUp }) => {
     }
     
     try {
-      const { user, token } = await authService.signup(username, email, password);
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
+      const authResponse = await authService.register({
+        username,
+        first_name: firstName,
+        last_name: lastName,
+        password
+      } as RegisterRequest);
+      
+      // Create user object for the app state
+      const user: User = {
+        user_id: authResponse.user_id,
+        username: authResponse.username,
+        first_name: firstName,
+        last_name: lastName,
+        role: username.toLowerCase().includes('admin') ? UserRole.ADMIN : UserRole.USER
+      };
+      
       onSignUp(user);
       navigate('/');
     } catch (err) {
-      setError('Registration failed. Please try again.');
+      setError(err instanceof Error ? err.message : 'Registration failed. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  const isAdminPreview = username.toLowerCase().includes('admin') || email.toLowerCase().includes('admin');
+  const isAdminPreview = username.toLowerCase().includes('admin');
 
   return (
     <div className="min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8 bg-gray-50 bg-grid">
@@ -94,17 +108,33 @@ const SignUpPage: React.FC<SignUpPageProps> = ({ onSignUp }) => {
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Email</label>
-              <div className="mt-1">
-                <input
-                  required
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="e.g., admin@example.com or user@example.com"
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                />
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">First Name</label>
+                <div className="mt-1">
+                  <input
+                    required
+                    type="text"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    placeholder="John"
+                    className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Last Name</label>
+                <div className="mt-1">
+                  <input
+                    required
+                    type="text"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    placeholder="Doe"
+                    className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  />
+                </div>
               </div>
             </div>
 

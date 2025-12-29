@@ -1,54 +1,55 @@
 // API Configuration for Distributed Systems Project
-// Based on SWENG5111 Mini Project Requirements
+// Based on Backend Team API Specification
 
 export const API_CONFIG = {
   // Base URLs for different microservices
-  AUTH_SERVICE: import.meta.env.VITE_AUTH_SERVICE_URL || 'http://localhost:3001',
-  EVENT_SERVICE: import.meta.env.VITE_EVENT_SERVICE_URL || 'http://localhost:3002',
-  RESERVATION_SERVICE: import.meta.env.VITE_RESERVATION_SERVICE_URL || 'http://localhost:3003',
-  NOTIFICATION_SERVICE: import.meta.env.VITE_NOTIFICATION_SERVICE_URL || 'http://localhost:3004',
   API_GATEWAY: import.meta.env.VITE_API_GATEWAY_URL || 'http://localhost:3000',
+  CATALOG_SERVICE: import.meta.env.VITE_CATALOG_SERVICE_URL || 'http://localhost:3001',
+  INVENTORY_SERVICE: import.meta.env.VITE_INVENTORY_SERVICE_URL || 'http://localhost:3002',
+  BOOKING_SERVICE: import.meta.env.VITE_BOOKING_SERVICE_URL || 'http://localhost:3003',
+  PAYMENT_SERVICE: import.meta.env.VITE_PAYMENT_SERVICE_URL || 'http://localhost:3004',
+  NOTIFICATION_SERVICE: import.meta.env.VITE_NOTIFICATION_SERVICE_URL || 'http://localhost:3005',
   
-  // API Endpoints
+  // API Endpoints (as specified by backend team)
   ENDPOINTS: {
-    // Auth Service Endpoints
+    // Authentication Endpoints
     AUTH: {
-      LOGIN: '/auth/login',
-      SIGNUP: '/auth/signup',
-      REFRESH: '/auth/refresh',
-      LOGOUT: '/auth/logout',
-      ME: '/auth/me',
-      HEALTH: '/auth/health'
+      REGISTER: '/auth/register/',
+      LOGIN: '/auth/login/',
     },
     
-    // Event Service Endpoints
+    // Public Events Endpoints (via API Gateway)
     EVENTS: {
-      LIST: '/events',
-      DETAIL: '/events/:id',
-      CREATE: '/events',
-      UPDATE: '/events/:id',
-      DELETE: '/events/:id',
-      HEALTH: '/events/health'
+      LIST: '/api/v1/events/',
+      DETAIL: '/api/v1/events/:id/',
+      CREATE: '/api/v1/events/',
+      UPDATE: '/api/v1/events/:id/',
+      DELETE: '/api/v1/events/:id/',
     },
     
-    // Reservation Service Endpoints
+    // Reservation Endpoints (via API Gateway)
     RESERVATIONS: {
-      LIST: '/reservations',
-      USER_RESERVATIONS: '/reservations/user/:userId',
-      CREATE: '/reservations',
-      UPDATE: '/reservations/:id',
-      CANCEL: '/reservations/:id/cancel',
-      HEALTH: '/reservations/health'
+      LIST: '/api/v1/reservations/',
+      DETAIL: '/api/v1/reservations/:id/',
+      CREATE: '/api/v1/reservations/',
+      CANCEL: '/api/v1/reservations/:id/cancel/',
+      CONFIRM: '/api/v1/reservations/:id/confirm/',
     },
     
-    // Notification Service Endpoints
-    NOTIFICATIONS: {
-      SEND: '/notifications/send',
-      LIST: '/notifications',
-      HEALTH: '/notifications/health'
+    // Payment Endpoints (via API Gateway)
+    PAYMENTS: {
+      CREATE: '/api/v1/payments/',
+      WEBHOOK: '/api/v1/payments/webhook',
     },
     
-    // System Health Endpoints
+    // Internal Service Endpoints
+    INVENTORY: {
+      HOLD: '/inventory/hold',
+      RELEASE: '/inventory/release',
+      SELL: '/inventory/sell',
+    },
+    
+    // Health Check Endpoints
     HEALTH: {
       ALL: '/health',
       SERVICES: '/health/services'
@@ -64,17 +65,17 @@ export const API_CONFIG = {
   DEFAULT_PAGE_SIZE: 20,
   MAX_PAGE_SIZE: 100,
   
-  // WebSocket/Real-time configuration
-  WEBSOCKET: {
-    URL: import.meta.env.VITE_WS_URL || 'ws://localhost:3005',
-    RECONNECT_ATTEMPTS: 5,
-    RECONNECT_DELAY: 2000
+  // Stripe Configuration
+  STRIPE: {
+    PUBLISHABLE_KEY: import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || 'pk_test_...',
+    WEBHOOK_SECRET: import.meta.env.VITE_STRIPE_WEBHOOK_SECRET || ''
   }
 };
 
 // Export individual service URLs for convenience
-export const AUTH_SERVICE_URL = API_CONFIG.AUTH_SERVICE;
-export const EVENT_SERVICE_URL = API_CONFIG.EVENT_SERVICE;
-export const RESERVATION_SERVICE_URL = API_CONFIG.RESERVATION_SERVICE;
-export const NOTIFICATION_SERVICE_URL = API_CONFIG.NOTIFICATION_SERVICE;
 export const API_GATEWAY_URL = API_CONFIG.API_GATEWAY;
+export const CATALOG_SERVICE_URL = API_CONFIG.CATALOG_SERVICE;
+export const INVENTORY_SERVICE_URL = API_CONFIG.INVENTORY_SERVICE;
+export const BOOKING_SERVICE_URL = API_CONFIG.BOOKING_SERVICE;
+export const PAYMENT_SERVICE_URL = API_CONFIG.PAYMENT_SERVICE;
+export const NOTIFICATION_SERVICE_URL = API_CONFIG.NOTIFICATION_SERVICE;

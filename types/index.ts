@@ -5,112 +5,145 @@ export enum UserRole {
 }
 
 export interface User {
-  id: string;
+  user_id: string;
   username: string;
+  first_name?: string;
+  last_name?: string;
   email?: string;
   role: UserRole;
-  createdAt: string;
-  updatedAt: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
-// API Request/Response Types
+// API Request/Response Types (matching backend specification)
+export interface RegisterRequest {
+  username: string;
+  password: string;
+  first_name: string;
+  last_name: string;
+}
+
 export interface LoginRequest {
   username: string;
   password: string;
 }
 
-export interface SignupRequest {
-  username: string;
-  email: string;
-  password: string;
-}
-
 export interface AuthResponse {
-  user: User;
+  user_id: string;
+  username: string;
   token: string;
-  refreshToken: string;
-  expiresIn: number;
 }
 
-// Event Types
+// Event Types (matching database schema)
 export interface Event {
   id: string;
-  title: string;
-  description: string;
-  date: string;
-  venue: string;
-  price: number;
-  totalTickets: number;
-  availableTickets: number;
-  category: string;
-  image: string;
-  createdBy: string;
-  createdAt: string;
-  updatedAt: string;
-  status: 'ACTIVE' | 'CANCELLED' | 'COMPLETED';
+  name: string; // Changed from 'title' to 'name' to match backend
+  start_at: string; // Changed from 'date' to 'start_at'
+  price_cents: number; // Changed from 'price' to 'price_cents'
+  total_tickets: number;
+  tickets_sold: number;
+  tickets_held: number;
+  metadata?: Record<string, any>;
+  created_at: string;
 }
 
 export interface CreateEventRequest {
-  title: string;
-  description: string;
-  date: string;
-  venue: string;
-  price: number;
-  totalTickets: number;
-  category: string;
-  image?: string;
+  name: string;
+  start_at: string;
+  price_cents: number;
+  total_tickets: number;
+  metadata?: Record<string, any>;
 }
 
-export interface UpdateEventRequest extends Partial<CreateEventRequest> {
-  status?: 'ACTIVE' | 'CANCELLED' | 'COMPLETED';
-}
+export interface UpdateEventRequest extends Partial<CreateEventRequest> {}
 
-// Reservation Types
+// Reservation Types (matching database schema)
 export enum ReservationStatus {
   PENDING = 'PENDING',
-  CONFIRMED = 'CONFIRMED',
+  AWAITING_PAYMENT = 'AWAITING_PAYMENT',
   PAID = 'PAID',
-  NOTIFIED = 'NOTIFIED',
-  FAILED = 'FAILED',
+  CONFIRMED = 'CONFIRMED',
   EXPIRED = 'EXPIRED',
   CANCELLED = 'CANCELLED'
 }
 
 export interface Reservation {
   id: string;
-  eventId: string;
-  eventTitle: string;
-  userId: string;
+  user_id: string;
+  event_id: string;
+  quantity: number;
   status: ReservationStatus;
-  ticketQuantity: number;
-  totalAmount: number;
-  createdAt: string;
-  updatedAt: string;
-  expiresAt?: string;
-  paymentId?: string;
+  amount_cents: number;
+  expires_at?: string;
+  payment_intent_id?: string;
+  created_at: string;
 }
 
 export interface CreateReservationRequest {
-  eventId: string;
-  ticketQuantity: number;
+  event_id: string;
+  quantity: number;
+  user_id?: string; // Optional, will be extracted from token
+}
+
+export interface ReservationResponse {
+  reservation_id: string;
+  amount_cents: number;
+  expires_at: string;
+  payment: {
+    client_secret?: string;
+    checkout_url?: string;
+  };
+}
+
+// Payment Types
+export interface Payment {
+  id: string;
+  reservation_id: string;
+  stripe_payment_intent: string;
+  status: string;
+  amount_cents: number;
+  provider_payload?: Record<string, any>;
+  created_at: string;
+}
+
+export interface CreatePaymentRequest {
+  reservation_id: string;
+}
+
+export interface PaymentIntentResponse {
+  client_secret?: string;
+  checkout_url?: string;
+}
+
+// Inventory Types (Internal Service)
+export interface HoldRequest {
+  event_id: string;
+  quantity: number;
+  reservation_id: string;
+  hold_ttl_secs: number;
+}
+
+export interface ReleaseRequest {
+  event_id: string;
+  quantity: number;
+  reservation_id: string;
+}
+
+export interface SellRequest {
+  event_id: string;
+  quantity: number;
+  reservation_id: string;
 }
 
 // Notification Types
 export interface Notification {
   id: string;
-  userId: string;
-  type: 'RESERVATION_CONFIRMED' | 'RESERVATION_CANCELLED' | 'EVENT_REMINDER' | 'PAYMENT_REQUIRED';
+  user_id: string;
+  type: 'RESERVATION_CREATED' | 'PAYMENT_SUCCEEDED' | 'RESERVATION_EXPIRED' | 'RESERVATION_CANCELLED';
   title: string;
   message: string;
   read: boolean;
-  createdAt: string;
-}
-
-export interface SendNotificationRequest {
-  userId: string;
-  type: 'RESERVATION_CONFIRMED' | 'RESERVATION_CANCELLED' | 'EVENT_REMINDER' | 'PAYMENT_REQUIRED';
-  title: string;
-  message: string;
+  created_at: string;
 }
 
 // System Health Types
@@ -156,4 +189,17 @@ export interface ApiErrorResponse {
   code?: string;
   timestamp: string;
   path: string;
+}
+
+// Stripe Types
+export interface StripeWebhookEvent {
+  type: string;
+  data: {
+    object: {
+      id: string;
+      metadata?: {
+        reservation_id?: string;
+      };
+    };
+  };
 }
