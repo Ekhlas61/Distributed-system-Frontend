@@ -22,17 +22,13 @@ export const paymentService = {
       );
       return response.data;
     } catch (error) {
-      // Fallback to demo mode if backend is not available
+      // If backend payment service or booking lookup is unavailable, fall back to demo mode
       if (error instanceof ApiError) {
-        console.warn('Backend payment not available, using demo mode');
-        
-        // Simulate API Call
-        await new Promise(resolve => setTimeout(resolve, 800));
-        
-        // Generate demo payment response
+        console.warn('Payment backend not available, using demo mode', error.message);
+        // Return a harmless demo checkout URL so the UI can continue in demo mode
+        // Redirect into the SPA demo checkout route (uses HashRouter) so we stay inside the app
         return {
-          client_secret: 'pi_' + Math.random().toString(36).substr(2, 20) + '_secret_' + Math.random().toString(36).substr(2, 20),
-          checkout_url: `https://checkout.stripe.com/pay/cs_test_${Math.random().toString(36).substr(2, 20)}`
+          checkout_url: `/#/demo/checkout?reservation_id=${paymentData.reservation_id}`
         };
       }
       throw error;

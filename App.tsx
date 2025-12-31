@@ -12,6 +12,7 @@ import EventListPage from './pages/EventListPage';
 import EventDetailPage from './pages/EventDetailPage';
 import MyReservationsPage from './pages/MyReservationsPage';
 import AdminDashboard from './pages/AdminDashboard';
+import DemoCheckoutPage from './pages/DemoCheckoutPage';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -76,6 +77,7 @@ const App: React.FC = () => {
                 <AdminDashboard />
               </ProtectedRoute>
             } />
+            <Route path="demo/checkout" element={<DemoCheckoutPage />} />
           </Route>
         </Routes>
       </Router>

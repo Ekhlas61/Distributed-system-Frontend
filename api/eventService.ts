@@ -10,39 +10,45 @@ import { sleep } from './client';
 const MOCK_EVENTS: Event[] = [
   {
     id: 'e1',
-    title: 'Distributed Systems Conference 2024',
+    name: 'Distributed Systems Conference 2024',
     description: 'Learn about microservices, Pub/Sub patterns, and cloud-native architecture from industry experts.',
-    date: '2024-10-15T09:00:00Z',
+    start_at: '2024-10-15T09:00:00Z',
     venue: 'Grand Tech Hall, San Francisco',
-    price: 299.00,
-    totalTickets: 500,
-    availableTickets: 124,
-    category: 'Technology',
-    image: 'https://picsum.photos/seed/tech/800/400'
+    price_cents: 29900,
+    total_tickets: 500,
+    tickets_sold: 376,
+    tickets_held: 0,
+    metadata: { category: 'Technology' },
+    image: 'https://picsum.photos/seed/tech/800/400',
+    created_at: '2024-01-01T00:00:00Z'
   },
   {
     id: 'e2',
-    title: 'Neo-Jazz Summer Night',
+    name: 'Neo-Jazz Summer Night',
     description: 'A magical evening of modern jazz and fusion melodies under the stars.',
-    date: '2024-08-22T20:00:00Z',
+    start_at: '2024-08-22T20:00:00Z',
     venue: 'City Botanical Garden',
-    price: 45.00,
-    totalTickets: 200,
-    availableTickets: 0,
-    category: 'Music',
-    image: 'https://picsum.photos/seed/jazz/800/400'
+    price_cents: 4500,
+    total_tickets: 200,
+    tickets_sold: 200,
+    tickets_held: 0,
+    metadata: { category: 'Music' },
+    image: 'https://picsum.photos/seed/jazz/800/400',
+    created_at: '2024-01-01T00:00:00Z'
   },
   {
     id: 'e3',
-    title: 'React & AI Workshop',
+    name: 'React & AI Workshop',
     description: 'Deep dive into building GenAI powered React applications with Gemini API.',
-    date: '2024-11-05T10:00:00Z',
+    start_at: '2024-11-05T10:00:00Z',
     venue: 'Silicon Valley Hub',
-    price: 150.00,
-    totalTickets: 100,
-    availableTickets: 42,
-    category: 'Workshop',
-    image: 'https://picsum.photos/seed/code/800/400'
+    price_cents: 15000,
+    total_tickets: 100,
+    tickets_sold: 58,
+    tickets_held: 0,
+    metadata: { category: 'Workshop' },
+    image: 'https://picsum.photos/seed/code/800/400',
+    created_at: '2024-01-01T00:00:00Z'
   }
 ];
 

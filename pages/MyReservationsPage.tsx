@@ -1,7 +1,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { User, Reservation } from '../types';
-import { reservationService } from '../api/reservationService';
+import { bookingService } from '../api/bookingService';
+import { catalogService } from '../api/catalogService';
+import { eventService } from '../api/eventService';
+import { demoStore } from '../api/demoStore';
 import StatusBadge from '../components/StatusBadge';
 import ReservationTimeline from '../components/ReservationTimeline';
 import SystemInsight from '../components/SystemInsight';
@@ -10,14 +13,53 @@ interface MyReservationsPageProps {
   user: User;
 }
 
+interface ReservationWithEvent extends Reservation {
+  eventTitle: string;
+  ticketQuantity: number;
+  totalAmount: number;
+  eventDate: string;
+  venue?: string;
+  updatedAt: string;
+}
+
 const MyReservationsPage: React.FC<MyReservationsPageProps> = ({ user }) => {
-  const [reservations, setReservations] = useState<Reservation[]>([]);
+  const [reservations, setReservations] = useState<ReservationWithEvent[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchReservations = async () => {
-    const data = await reservationService.getMyReservations(user.id);
-    setReservations(data);
-    setLoading(false);
+    try {
+      const response = await bookingService.getUserReservations();
+      let reservationsWithEvents: ReservationWithEvent[] = response.data as any;
+      
+      // Try to get event details for each reservation
+      for (let i = 0; i < reservationsWithEvents.length; i++) {
+        try {
+          const event = await eventService.getEventById(reservationsWithEvents[i].event_id);
+          if (event) {
+            reservationsWithEvents[i] = {
+              ...reservationsWithEvents[i],
+              eventTitle: event.name,
+              ticketQuantity: reservationsWithEvents[i].quantity,
+              totalAmount: reservationsWithEvents[i].amount_cents / 100,
+              eventDate: event.start_at,
+              venue: event.venue
+            };
+          }
+        } catch (err) {
+          // If backend is not available, use demo store
+          console.warn('Could not fetch event details, using demo data');
+        }
+      }
+      
+      setReservations(reservationsWithEvents);
+    } catch (error) {
+      console.error('Failed to fetch reservations:', error);
+      // Fallback to demo store
+      const demoReservations = demoStore.getReservationsByUser(user.user_id);
+      setReservations(demoReservations as ReservationWithEvent[]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -28,7 +70,7 @@ const MyReservationsPage: React.FC<MyReservationsPageProps> = ({ user }) => {
     // published by async workers (Payment, Notification, etc.)
     const interval = setInterval(fetchReservations, 3000);
     return () => clearInterval(interval);
-  }, [user.id]);
+  }, [user.user_id]);
 
   if (loading) return <div className="text-center py-20 animate-pulse">Scanning reservation vault...</div>;
 

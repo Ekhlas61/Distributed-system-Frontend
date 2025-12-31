@@ -43,6 +43,9 @@ export interface Event {
   total_tickets: number;
   tickets_sold: number;
   tickets_held: number;
+  description?: string;
+  image?: string;
+  venue?: string;
   metadata?: Record<string, any>;
   created_at: string;
 }

@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Event, User } from '../types';
-import { catalogService } from '../api/catalogService';
+import { eventService } from '../api/eventService';
 import PaymentModal from '../components/PaymentModal';
 import SystemInsight from '../components/SystemInsight';
 
@@ -23,7 +23,7 @@ const EventDetailPage: React.FC<EventDetailPageProps> = ({ user }) => {
     const fetchDetail = async () => {
       if (id) {
         try {
-          const data = await catalogService.getEvent(id);
+          const data = await eventService.getEventById(id);
           if (data) setEvent(data);
           else navigate('/');
         } catch (error) {
@@ -35,8 +35,29 @@ const EventDetailPage: React.FC<EventDetailPageProps> = ({ user }) => {
     fetchDetail();
   }, [id, navigate]);
 
+  // Check for redirect after login and auto-open payment modal
+  useEffect(() => {
+    if (user && event && !loading) {
+      const redirectData = sessionStorage.getItem('redirectAfterLogin');
+      if (redirectData) {
+        const { eventId, quantity: savedQuantity, action } = JSON.parse(redirectData);
+        if (eventId === id && action === 'purchase') {
+          sessionStorage.removeItem('redirectAfterLogin'); // Clear the redirect data
+          setQuantity(savedQuantity);
+          setShowPaymentModal(true);
+        }
+      }
+    }
+  }, [user, event, loading, id]);
+
   const handleBook = () => {
     if (!user) {
+      // Store the current event and quantity for post-login redirect
+      sessionStorage.setItem('redirectAfterLogin', JSON.stringify({
+        eventId: id,
+        quantity: quantity,
+        action: 'purchase'
+      }));
       navigate('/login');
       return;
     }
@@ -95,17 +116,17 @@ const EventDetailPage: React.FC<EventDetailPageProps> = ({ user }) => {
               <div className="bg-gray-50 p-6 rounded-3xl border border-gray-100 flex flex-col justify-between">
                 <div>
                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Status</p>
-                  <p className={`text-xl font-black ${event.availableTickets > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {event.availableTickets > 0 ? 'Booking Open' : 'Sold Out'}
+                  <p className={`text-xl font-black ${availableTickets > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {availableTickets > 0 ? 'Booking Open' : 'Sold Out'}
                   </p>
                 </div>
                 <div className="mt-6">
                   <div className="flex justify-between text-xs font-bold text-gray-400 uppercase mb-2">
                     <span>Availability</span>
-                    <span>{Math.round((event.availableTickets / event.totalTickets) * 100)}% left</span>
+                    <span>{Math.round((availableTickets / event.total_tickets) * 100)}% left</span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div className="bg-blue-600 h-2 rounded-full transition-all duration-1000" style={{ width: `${(event.availableTickets / event.totalTickets) * 100}%` }}></div>
+                    <div className="bg-blue-600 h-2 rounded-full transition-all duration-1000" style={{ width: `${(availableTickets / event.total_tickets) * 100}%` }}></div>
                   </div>
                 </div>
               </div>
@@ -120,7 +141,7 @@ const EventDetailPage: React.FC<EventDetailPageProps> = ({ user }) => {
 
             <SystemInsight 
               topic="Double-Booking Prevention" 
-              context={`The Reservation service uses distributed locking or database constraints to ensure that during high concurrency, the ${event.availableTickets} available tickets aren't over-allocated.`} 
+              context={`The Reservation service uses distributed locking or database constraints to ensure that during high concurrency, the ${availableTickets} available tickets aren't over-allocated.`} 
             />
           </div>
 

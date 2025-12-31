@@ -30,6 +30,9 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ event, quantity, isOpen, on
         quantity
       });
 
+      // Calculate the total amount (since demo mode returns 0)
+      const calculatedAmount = event.price_cents * quantity;
+
       // Step 2: Create payment intent
       const paymentResponse = await paymentService.createPayment({
         reservation_id: reservationResponse.reservation_id
@@ -39,7 +42,13 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ event, quantity, isOpen, on
       // In production, this would redirect to Stripe Checkout
       await new Promise(resolve => setTimeout(resolve, 2000));
 
-      setReservation(reservationResponse);
+      // Update reservation with correct amount
+      const updatedReservation = {
+        ...reservationResponse,
+        amount_cents: calculatedAmount
+      };
+
+      setReservation(updatedReservation);
       setShowSuccess(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Payment failed. Please try again.');
@@ -66,17 +75,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ event, quantity, isOpen, on
         quantity
       });
 
-      // Create payment and get checkout URL
-      const paymentResponse = await paymentService.createPayment({
-        reservation_id: reservationResponse.reservation_id
-      });
-
-      // Redirect to Stripe Checkout
-      if (paymentResponse.checkout_url) {
-        window.location.href = paymentResponse.checkout_url;
-      } else {
-        throw new Error('Payment URL not available');
-      }
+      // Redirect to demo checkout page
+      window.location.href = `/#/demo/checkout?reservation_id=${reservationResponse.reservation_id}`;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Payment failed. Please try again.');
       setLoading(false);

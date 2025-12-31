@@ -1,11 +1,13 @@
 import { 
   Reservation, 
+  ReservationStatus,
   CreateReservationRequest, 
   ReservationResponse, 
   PaginatedResponse, 
   PaginationParams 
 } from '../types';
 import { api, ApiError } from './client';
+import { demoStore } from './demoStore';
 import { API_CONFIG } from '../config/api';
 
 /**
@@ -17,30 +19,62 @@ export const bookingService = {
   // Create a new reservation
   createReservation: async (reservationData: CreateReservationRequest): Promise<ReservationResponse> => {
     try {
-      const response = await api.post<ReservationResponse>(
+      const response = await api.post<{
+        id: string;
+        amount_cents: number;
+        expires_at: string;
+        status: string;
+      }>(
         API_CONFIG.ENDPOINTS.RESERVATIONS.CREATE,
         reservationData
       );
-      return response.data;
+      
+      // Map backend response to frontend expected format
+      return {
+        reservation_id: response.data.id,
+        amount_cents: response.data.amount_cents,
+        expires_at: response.data.expires_at,
+        payment: {
+          // Payment info will be populated by payment service
+        }
+      };
     } catch (error) {
       // Fallback to demo mode if backend is not available
       if (error instanceof ApiError) {
         console.warn('Backend booking not available, using demo mode');
-        
+
         // Simulate API Call
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        // Generate demo reservation response
+        await new Promise(resolve => setTimeout(resolve, 400));
+
+        // Demo Logic
         const reservationId = 'res-' + Math.random().toString(36).substr(2, 9);
         const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString(); // 15 minutes from now
-        
+
+        const demoReservation: any = {
+          id: reservationId,
+          reservation_id: reservationId,
+          user_id: reservationData.user_id || 'demo-user',
+          event_id: reservationData.event_id,
+          quantity: reservationData.quantity,
+          status: 'AWAITING_PAYMENT',
+          amount_cents: 0,
+          expires_at: expiresAt,
+          created_at: new Date().toISOString()
+        };
+
+        // Persist demo reservation so it shows up in listing and can be confirmed
+        try {
+          demoStore.addReservation(demoReservation as any);
+        } catch (e) {
+          // ignore
+        }
+
         return {
           reservation_id: reservationId,
-          amount_cents: reservationData.quantity * 5000, // Assuming $50 per ticket
+          amount_cents: 0, // Will be calculated by payment service
           expires_at: expiresAt,
           payment: {
-            client_secret: 'pi_' + Math.random().toString(36).substr(2, 20) + '_secret_' + Math.random().toString(36).substr(2, 20),
-            checkout_url: `https://checkout.stripe.com/pay/cs_test_${Math.random().toString(36).substr(2, 20)}`
+            // Payment info will be populated by payment service
           }
         };
       }
@@ -50,60 +84,49 @@ export const bookingService = {
 
   // List user's reservations
   getUserReservations: async (params?: PaginationParams): Promise<PaginatedResponse<Reservation>> => {
+    // Use the by-user endpoint which allows non-admin users to see their own reservations
     try {
       const response = await api.get<Reservation[]>(
-        API_CONFIG.ENDPOINTS.RESERVATIONS.LIST,
+        '/api/v1/reservations/by-user/',
         { 
           params,
           headers: {} as any
         }
       );
+
+      // Map backend response to frontend format
+      const reservations: Reservation[] = response.data.map((res: any) => ({
+        id: res.id,
+        user_id: res.user_id,
+        event_id: res.event_id,
+        quantity: res.quantity,
+        status: res.status,
+        amount_cents: res.amount_cents,
+        expires_at: res.expires_at,
+        created_at: res.created_at
+      }));
+
       return {
-        data: response.data,
+        data: reservations,
         pagination: {
           page: params?.page || 1,
           limit: params?.limit || API_CONFIG.DEFAULT_PAGE_SIZE,
-          total: response.data.length,
-          totalPages: Math.ceil(response.data.length / (params?.limit || API_CONFIG.DEFAULT_PAGE_SIZE))
+          total: reservations.length,
+          totalPages: Math.ceil(reservations.length / (params?.limit || API_CONFIG.DEFAULT_PAGE_SIZE))
         }
       };
     } catch (error) {
-      // Fallback to demo mode
       if (error instanceof ApiError) {
-        console.warn('Backend booking not available, using demo mode');
-        
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        // Demo reservations data
-        const demoReservations: Reservation[] = [
-          {
-            id: 'res-1',
-            user_id: 'user-1',
-            event_id: '1',
-            quantity: 2,
-            status: 'CONFIRMED' as any,
-            amount_cents: 10000,
-            created_at: '2024-01-15T10:00:00Z'
-          },
-          {
-            id: 'res-2',
-            user_id: 'user-1',
-            event_id: '2',
-            quantity: 1,
-            status: 'PENDING' as any,
-            amount_cents: 7500,
-            expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
-            created_at: '2024-01-16T14:30:00Z'
-          }
-        ];
-        
+        // Demo mode: read from client-side demo store
+        const demoReservations = demoStore.getReservationsByUser();
+        const paged = demoReservations.slice(0, params?.limit || API_CONFIG.DEFAULT_PAGE_SIZE);
         return {
-          data: demoReservations,
+          data: paged as Reservation[],
           pagination: {
-            page: 1,
-            limit: API_CONFIG.DEFAULT_PAGE_SIZE,
+            page: params?.page || 1,
+            limit: params?.limit || API_CONFIG.DEFAULT_PAGE_SIZE,
             total: demoReservations.length,
-            totalPages: 1
+            totalPages: Math.max(1, Math.ceil(demoReservations.length / (params?.limit || API_CONFIG.DEFAULT_PAGE_SIZE)))
           }
         };
       }
@@ -113,46 +136,34 @@ export const bookingService = {
 
   // Get single reservation details
   getReservation: async (reservationId: string): Promise<Reservation> => {
-    try {
-      const response = await api.get<Reservation>(
-        API_CONFIG.ENDPOINTS.RESERVATIONS.DETAIL.replace(':id', reservationId)
-      );
-      return response.data;
-    } catch (error) {
-      // Fallback to demo mode
-      if (error instanceof ApiError) {
-        console.warn('Backend booking not available, using demo mode');
-        
-        await new Promise(resolve => setTimeout(resolve, 300));
-        
-        return {
-          id: reservationId,
-          user_id: 'user-1',
-          event_id: '1',
-          quantity: 2,
-          status: 'PENDING' as any,
-          amount_cents: 10000,
-          expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
-          created_at: '2024-01-15T10:00:00Z'
-        };
-      }
-      throw error;
-    }
+    const response = await api.get<{
+      id: string;
+      user_id: string;
+      event_id: string;
+      quantity: number;
+      status: string;
+      amount_cents: number;
+      expires_at?: string;
+      created_at: string;
+    }>(
+      API_CONFIG.ENDPOINTS.RESERVATIONS.DETAIL.replace(':id', reservationId)
+    );
+    
+    return {
+      id: response.data.id,
+      user_id: response.data.user_id,
+      event_id: response.data.event_id,
+      quantity: response.data.quantity,
+      status: response.data.status as ReservationStatus,
+      amount_cents: response.data.amount_cents,
+      expires_at: response.data.expires_at,
+      created_at: response.data.created_at
+    };
   },
 
   // Cancel reservation
   cancelReservation: async (reservationId: string): Promise<void> => {
-    try {
-      await api.post(API_CONFIG.ENDPOINTS.RESERVATIONS.CANCEL.replace(':id', reservationId));
-    } catch (error) {
-      // Fallback to demo mode
-      if (error instanceof ApiError) {
-        console.warn('Backend booking not available, using demo mode');
-        await new Promise(resolve => setTimeout(resolve, 600));
-        // Demo mode - just simulate cancellation
-      }
-      throw error;
-    }
+    await api.post(API_CONFIG.ENDPOINTS.RESERVATIONS.CANCEL.replace(':id', reservationId));
   },
 
   // Confirm reservation (internal call from Payment Service)
@@ -160,11 +171,14 @@ export const bookingService = {
     try {
       await api.post(API_CONFIG.ENDPOINTS.RESERVATIONS.CONFIRM.replace(':id', reservationId));
     } catch (error) {
-      // Fallback to demo mode
       if (error instanceof ApiError) {
-        console.warn('Backend booking not available, using demo mode');
-        await new Promise(resolve => setTimeout(resolve, 400));
-        // Demo mode - just simulate confirmation
+        console.warn('Booking confirm not available, applying demo confirm');
+        try {
+          demoStore.confirmReservation(reservationId);
+        } catch (e) {
+          // ignore
+        }
+        return;
       }
       throw error;
     }

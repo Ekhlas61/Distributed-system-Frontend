@@ -26,7 +26,16 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(user));
       onLogin(user);
-      navigate('/');
+      
+      // Check for redirect after login
+      const redirectData = sessionStorage.getItem('redirectAfterLogin');
+      if (redirectData) {
+        const { eventId } = JSON.parse(redirectData);
+        sessionStorage.removeItem('redirectAfterLogin'); // Clear the redirect data
+        navigate(`/events/${eventId}`);
+      } else {
+        navigate('/');
+      }
     } catch (err) {
       setError('Invalid credentials. Please try again.');
     } finally {
