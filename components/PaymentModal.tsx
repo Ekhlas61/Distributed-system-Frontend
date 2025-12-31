@@ -48,6 +48,13 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ event, quantity, isOpen, on
         amount_cents: calculatedAmount
       };
 
+      // Confirm reservation so it appears in user's reservations (demo and backend)
+      try {
+        await bookingService.confirmReservation(updatedReservation.reservation_id, calculatedAmount);
+      } catch (e) {
+        // ignore confirmation errors in UI
+      }
+
       setReservation(updatedReservation);
       setShowSuccess(true);
     } catch (err) {

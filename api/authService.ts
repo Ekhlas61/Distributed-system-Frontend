@@ -38,7 +38,10 @@ export const authService = {
       const user: User = {
         user_id: response.data.user_id,
         username: response.data.username,
-        role: response.data.username.toLowerCase().includes('admin') ? UserRole.ADMIN : UserRole.USER
+        // Prefer explicit role from backend if provided, otherwise infer from username
+        role: ((response.data as any).role
+          ? ((String((response.data as any).role).toUpperCase().includes('ADMIN')) ? UserRole.ADMIN : UserRole.USER)
+          : (response.data.username.toLowerCase().includes('admin') ? UserRole.ADMIN : UserRole.USER))
       };
 
       // Persist token and user
@@ -82,7 +85,10 @@ export const authService = {
         username: response.data.username,
         first_name: userData.first_name,
         last_name: userData.last_name,
-        role: userData.username.toLowerCase().includes('admin') ? UserRole.ADMIN : UserRole.USER
+        // Prefer backend provided role if present, otherwise infer from username
+        role: ((response.data as any).role
+          ? ((String((response.data as any).role).toUpperCase().includes('ADMIN')) ? UserRole.ADMIN : UserRole.USER)
+          : (userData.username.toLowerCase().includes('admin') ? UserRole.ADMIN : UserRole.USER))
       };
 
       localStorage.setItem('token', response.data.token);

@@ -52,10 +52,15 @@ export const bookingService = {
         const reservationId = 'res-' + Math.random().toString(36).substr(2, 9);
         const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString(); // 15 minutes from now
 
+        // Prefer explicitly provided user_id, otherwise use locally stored user (demo), fallback to 'demo-user'
+        const storedUser = localStorage.getItem('user');
+        const currentUser = storedUser ? JSON.parse(storedUser) : null;
+        const demoUserId = reservationData.user_id || currentUser?.user_id || 'demo-user';
+
         const demoReservation: any = {
           id: reservationId,
           reservation_id: reservationId,
-          user_id: reservationData.user_id || 'demo-user',
+          user_id: demoUserId,
           event_id: reservationData.event_id,
           quantity: reservationData.quantity,
           status: 'AWAITING_PAYMENT',
@@ -181,7 +186,7 @@ export const bookingService = {
   },
 
   // Confirm reservation (internal call from Payment Service)
-  confirmReservation: async (reservationId: string): Promise<void> => {
+  confirmReservation: async (reservationId: string, amount_cents?: number): Promise<void> => {
     try {
       await api.post(
         API_CONFIG.ENDPOINTS.RESERVATIONS.CONFIRM.replace(":id", reservationId)
@@ -190,7 +195,7 @@ export const bookingService = {
       if (error instanceof ApiError) {
         console.warn('Booking confirm not available, applying demo confirm');
         try {
-          demoStore.confirmReservation(reservationId);
+          demoStore.confirmReservation(reservationId, amount_cents);
         } catch (e) {
           // ignore
         }

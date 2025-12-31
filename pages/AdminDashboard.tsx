@@ -19,6 +19,7 @@ const AdminDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [eventsLoading, setEventsLoading] = useState(false);
   const [reservationsLoading, setReservationsLoading] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   // Modal states
   const [showAddModal, setShowAddModal] = useState(false);
@@ -53,6 +54,7 @@ const AdminDashboard: React.FC = () => {
       setEvents(response.data);
     } catch (error) {
       console.error("Failed to fetch events:", error);
+      setActionError(String(error));
     } finally {
       setEventsLoading(false);
     }
@@ -87,6 +89,7 @@ const AdminDashboard: React.FC = () => {
     try {
       await catalogService.createEvent(eventForm);
       setShowAddModal(false);
+      setActionError(null);
       setEventForm({
         name: "",
         start_at: "",
@@ -96,7 +99,7 @@ const AdminDashboard: React.FC = () => {
       fetchEvents();
     } catch (error) {
       console.error("Failed to create event:", error);
-      alert("Failed to create event. Please try again.");
+      setActionError('Failed to create event: ' + (error instanceof Error ? error.message : String(error)));
     }
   };
 
@@ -106,6 +109,7 @@ const AdminDashboard: React.FC = () => {
     try {
       await catalogService.updateEvent(selectedEvent.id, eventForm);
       setShowEditModal(false);
+      setActionError(null);
       setSelectedEvent(null);
       setEventForm({
         name: "",
@@ -116,7 +120,7 @@ const AdminDashboard: React.FC = () => {
       fetchEvents();
     } catch (error) {
       console.error("Failed to update event:", error);
-      alert("Failed to update event. Please try again.");
+      setActionError('Failed to update event: ' + (error instanceof Error ? error.message : String(error)));
     }
   };
 
@@ -125,11 +129,12 @@ const AdminDashboard: React.FC = () => {
     try {
       await catalogService.deleteEvent(selectedEventId);
       setShowDeleteConfirm(false);
+      setActionError(null);
       setSelectedEventId(null);
       fetchEvents();
     } catch (error) {
       console.error("Failed to delete event:", error);
-      alert("Failed to delete event. Please try again.");
+      setActionError('Failed to delete event: ' + (error instanceof Error ? error.message : String(error)));
     }
   };
 
@@ -464,6 +469,12 @@ const AdminDashboard: React.FC = () => {
               Add Event
             </button>
           </div>
+
+          {actionError && (
+            <div className="mb-6 p-4 rounded-lg bg-red-50 border border-red-100 text-sm text-red-800">
+              {actionError}
+            </div>
+          )}
 
           {eventsLoading ? (
             <div className="text-center py-24">Loading events...</div>
