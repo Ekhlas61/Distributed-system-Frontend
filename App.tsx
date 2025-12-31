@@ -18,12 +18,23 @@ const App: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let mounted = true;
     const initAuth = async () => {
-      const currentUser = await authService.getCurrentUser();
-      setUser(currentUser);
-      setLoading(false);
+      try {
+        const currentUser = await Promise.race([
+          authService.getCurrentUser(),
+          new Promise(resolve => setTimeout(() => resolve(null), 2000))
+        ]) as any;
+        if (!mounted) return;
+        setUser(currentUser);
+      } catch (err) {
+        console.warn('initAuth error', err);
+      } finally {
+        if (mounted) setLoading(false);
+      }
     };
     initAuth();
+    return () => { mounted = false; };
   }, []);
 
   if (loading) {

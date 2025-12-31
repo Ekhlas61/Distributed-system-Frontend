@@ -26,22 +26,26 @@ const findUser = (username: string): User | null => {
  * INTEGRATION: Backend team's auth endpoints
  */
 export const authService = {
-  login: async (username: string, password: string): Promise<AuthResponse> => {
+  // Return shape: { user, token }
+  login: async (username: string, password: string): Promise<{ user: User; token: string }> => {
     try {
       const response = await api.post<AuthResponse>(
         API_CONFIG.ENDPOINTS.AUTH.LOGIN,
         { username, password } as LoginRequest
       );
-      
-      // Store token and user data
-      localStorage.setItem('token', response.data.token);
-      localStorage.setItem('user', JSON.stringify({
+
+      // Build user object from response (backend may return limited fields)
+      const user: User = {
         user_id: response.data.user_id,
         username: response.data.username,
-        role: username.toLowerCase().includes('admin') ? UserRole.ADMIN : UserRole.USER
-      }));
-      
-      return response.data;
+        role: response.data.username.toLowerCase().includes('admin') ? UserRole.ADMIN : UserRole.USER
+      };
+
+      // Persist token and user
+      localStorage.setItem('token', response.data.token);
+      localStorage.setItem('user', JSON.stringify(user));
+
+      return { user, token: response.data.token };
     } catch (error) {
       // Fallback to demo mode if backend is not available
       if (error instanceof ApiError) {
@@ -57,39 +61,34 @@ export const authService = {
         }
         
         const token = 'mock-jwt-token-' + Date.now();
-        const authResponse: AuthResponse = {
-          user_id: existingUser.user_id,
-          username: existingUser.username,
-          token
-        };
-        
+        const user: User = existingUser;
         localStorage.setItem('token', token);
-        localStorage.setItem('user', JSON.stringify(existingUser));
-        
-        return authResponse;
+        localStorage.setItem('user', JSON.stringify(user));
+        return { user, token };
       }
       throw error;
     }
   },
 
-  register: async (userData: RegisterRequest): Promise<AuthResponse> => {
+  register: async (userData: RegisterRequest): Promise<{ user: User; token: string }> => {
     try {
       const response = await api.post<AuthResponse>(
         API_CONFIG.ENDPOINTS.AUTH.REGISTER,
         userData
       );
-      
-      // Store token and user data
-      localStorage.setItem('token', response.data.token);
-      localStorage.setItem('user', JSON.stringify({
+
+      const user: User = {
         user_id: response.data.user_id,
         username: response.data.username,
         first_name: userData.first_name,
         last_name: userData.last_name,
         role: userData.username.toLowerCase().includes('admin') ? UserRole.ADMIN : UserRole.USER
-      }));
-      
-      return response.data;
+      };
+
+      localStorage.setItem('token', response.data.token);
+      localStorage.setItem('user', JSON.stringify(user));
+
+      return { user, token: response.data.token };
     } catch (error) {
       // Fallback to demo mode if backend is not available
       if (error instanceof ApiError) {
@@ -119,16 +118,9 @@ export const authService = {
         saveUser(user);
         
         const token = 'mock-jwt-token-' + Date.now();
-        const authResponse: AuthResponse = {
-          user_id: user.user_id,
-          username: user.username,
-          token
-        };
-        
         localStorage.setItem('token', token);
         localStorage.setItem('user', JSON.stringify(user));
-        
-        return authResponse;
+        return { user, token };
       }
       throw error;
     }

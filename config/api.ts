@@ -3,19 +3,20 @@
 
 export const API_CONFIG = {
   // Base URLs for different microservices
-  API_GATEWAY: import.meta.env.VITE_API_GATEWAY_URL || 'http://localhost:3000',
-  CATALOG_SERVICE: import.meta.env.VITE_CATALOG_SERVICE_URL || 'http://localhost:3001',
-  INVENTORY_SERVICE: import.meta.env.VITE_INVENTORY_SERVICE_URL || 'http://localhost:3002',
-  BOOKING_SERVICE: import.meta.env.VITE_BOOKING_SERVICE_URL || 'http://localhost:3003',
-  PAYMENT_SERVICE: import.meta.env.VITE_PAYMENT_SERVICE_URL || 'http://localhost:3004',
+  // Defaults mapped to backend docker-compose published ports
+  API_GATEWAY: import.meta.env.VITE_API_GATEWAY_URL || 'http://localhost:8000',
+  CATALOG_SERVICE: import.meta.env.VITE_CATALOG_SERVICE_URL || 'http://localhost:8002',
+  INVENTORY_SERVICE: import.meta.env.VITE_INVENTORY_SERVICE_URL || 'http://localhost:8003',
+  BOOKING_SERVICE: import.meta.env.VITE_BOOKING_SERVICE_URL || 'http://localhost:8001',
+  PAYMENT_SERVICE: import.meta.env.VITE_PAYMENT_SERVICE_URL || 'http://localhost:8004',
   NOTIFICATION_SERVICE: import.meta.env.VITE_NOTIFICATION_SERVICE_URL || 'http://localhost:3005',
   
   // API Endpoints (as specified by backend team)
   ENDPOINTS: {
-    // Authentication Endpoints
+    // Authentication Endpoints (match gateway routes)
     AUTH: {
-      REGISTER: '/auth/register/',
-      LOGIN: '/auth/login/',
+      REGISTER: '/register/',
+      LOGIN: '/login/',
     },
     
     // Public Events Endpoints (via API Gateway)

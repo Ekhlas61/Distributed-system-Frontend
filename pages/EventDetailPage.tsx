@@ -2,8 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Event, User } from '../types';
-import { eventService } from '../api/eventService';
-import { reservationService } from '../api/reservationService';
+import { catalogService } from '../api/catalogService';
+import PaymentModal from '../components/PaymentModal';
 import SystemInsight from '../components/SystemInsight';
 
 interface EventDetailPageProps {
@@ -17,37 +17,34 @@ const EventDetailPage: React.FC<EventDetailPageProps> = ({ user }) => {
   const [loading, setLoading] = useState(true);
   const [booking, setBooking] = useState(false);
   const [quantity, setQuantity] = useState(1);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
 
   useEffect(() => {
     const fetchDetail = async () => {
       if (id) {
-        const data = await eventService.getEventById(id);
-        if (data) setEvent(data);
-        else navigate('/');
+        try {
+          const data = await catalogService.getEvent(id);
+          if (data) setEvent(data);
+          else navigate('/');
+        } catch (error) {
+          navigate('/');
+        }
         setLoading(false);
       }
     };
     fetchDetail();
   }, [id, navigate]);
 
-  const handleBook = async () => {
+  const handleBook = () => {
     if (!user) {
       navigate('/login');
       return;
     }
 
     if (!event) return;
-
-    setBooking(true);
-    try {
-      // Calls Reservation Microservice (Synchronous REST Call)
-      await reservationService.createReservation(event, user.id, quantity);
-      navigate('/my-reservations');
-    } catch (err) {
-      alert('Booking failed. Please try again.');
-    } finally {
-      setBooking(false);
-    }
+    
+    // Show payment modal instead of direct booking
+    setShowPaymentModal(true);
   };
 
   if (loading || !event) return (
@@ -57,20 +54,20 @@ const EventDetailPage: React.FC<EventDetailPageProps> = ({ user }) => {
     </div>
   );
 
-  const totalPrice = event.price * quantity;
+  const availableTickets = event.total_tickets - event.tickets_sold - event.tickets_held;
+  const totalPrice = (event.price_cents * quantity) / 100;
 
   return (
     <div className="max-w-5xl mx-auto space-y-8">
       <div className="bg-white rounded-[2.5rem] overflow-hidden shadow-2xl border border-gray-100">
         <div className="relative h-[450px]">
-          <img src={event.image} alt={event.title} className="w-full h-full object-cover" />
+          <img src={event.image || '/api/placeholder/800/450'} alt={event.name} className="w-full h-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent flex flex-col justify-end p-10">
             <span className="w-fit px-4 py-1.5 bg-blue-600 text-white text-[10px] font-bold rounded-full mb-6 shadow-xl uppercase tracking-[0.2em]">
-              {event.category}
+              Event
             </span>
-            <h1 className="text-5xl md:text-6xl font-black text-white mb-4 tracking-tight leading-tight">
-              {event.title}
-            </h1>
+            <h1 className="text-5xl font-black text-white mb-4">{event.name}</h1>
+            <p className="text-xl text-gray-200 mb-6">{event.venue || 'TBD'}</p>
             <div className="flex items-center text-blue-200 text-lg font-medium space-x-6">
               <span className="flex items-center">
                 <svg className="w-5 h-5 mr-2 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
@@ -78,7 +75,7 @@ const EventDetailPage: React.FC<EventDetailPageProps> = ({ user }) => {
               </span>
               <span className="flex items-center">
                 <svg className="w-5 h-5 mr-2 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                {new Date(event.date).toLocaleDateString()} at {new Date(event.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                {new Date(event.start_at).toLocaleDateString()} at {new Date(event.start_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </span>
             </div>
           </div>
@@ -134,7 +131,7 @@ const EventDetailPage: React.FC<EventDetailPageProps> = ({ user }) => {
               <div className="space-y-6">
                 <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
                   <span className="text-gray-500 font-medium">Single Price</span>
-                  <span className="text-2xl font-black text-gray-900">${event.price.toFixed(2)}</span>
+                  <span className="text-2xl font-black text-gray-900">${(event.price_cents / 100).toFixed(2)}</span>
                 </div>
 
                 <div>
@@ -142,7 +139,7 @@ const EventDetailPage: React.FC<EventDetailPageProps> = ({ user }) => {
                   <div className="flex items-center bg-gray-50 rounded-2xl border border-gray-100 p-2">
                     <button 
                       onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                      disabled={event.availableTickets === 0}
+                      disabled={availableTickets === 0}
                       className="w-12 h-12 flex items-center justify-center text-blue-600 hover:bg-white rounded-xl transition-all disabled:opacity-30"
                     >
                       <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 12H4" /></svg>
@@ -150,7 +147,7 @@ const EventDetailPage: React.FC<EventDetailPageProps> = ({ user }) => {
                     <span className="flex-grow text-center text-2xl font-black text-gray-900">{quantity}</span>
                     <button 
                       onClick={() => setQuantity(Math.min(5, quantity + 1))}
-                      disabled={event.availableTickets === 0 || quantity >= event.availableTickets}
+                      disabled={availableTickets === 0 || quantity >= availableTickets}
                       className="w-12 h-12 flex items-center justify-center text-blue-600 hover:bg-white rounded-xl transition-all disabled:opacity-30"
                     >
                       <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
@@ -166,9 +163,9 @@ const EventDetailPage: React.FC<EventDetailPageProps> = ({ user }) => {
 
                   <button 
                     onClick={handleBook}
-                    disabled={booking || event.availableTickets === 0}
+                    disabled={booking || availableTickets === 0}
                     className={`w-full py-4 rounded-2xl text-lg font-black tracking-tight shadow-xl transition-all transform active:scale-95 ${
-                      event.availableTickets > 0 
+                      availableTickets > 0 
                         ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-blue-200' 
                         : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                     } ${booking ? 'opacity-70' : ''}`}
@@ -181,7 +178,7 @@ const EventDetailPage: React.FC<EventDetailPageProps> = ({ user }) => {
                         </svg>
                         Initiating Transaction...
                       </span>
-                    ) : event.availableTickets > 0 ? 'Confirm Reservation' : 'Unavailable'}
+                    ) : availableTickets > 0 ? 'Confirm Reservation' : 'Unavailable'}
                   </button>
                   
                   <p className="mt-4 text-center text-[10px] text-gray-400 font-medium">
@@ -193,6 +190,14 @@ const EventDetailPage: React.FC<EventDetailPageProps> = ({ user }) => {
           </div>
         </div>
       </div>
+
+      {/* Payment Modal */}
+      <PaymentModal
+        event={event}
+        quantity={quantity}
+        isOpen={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+      />
     </div>
   );
 };
